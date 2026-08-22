@@ -33,15 +33,19 @@ class AdminCreateEmployeeView(views.APIView):
                 password=temporary_password
             )
 
-            # 2. AUTOMATICALLY CREATE EMPLOYEE PROFILE (YE LINE MISSING THI)
+            # Optional fields request se lena
+            phone_number = request.data.get('phone_number', None)
+            designation = request.data.get('designation', None)
+
+            # 2. AUTOMATICALLY CREATE EMPLOYEE PROFILE
             EmployeeProfile.objects.create(
                 user=user,
                 employee_id=user.employee_id,
                 name=user.name,
                 email=user.email,
-                phone_number=user.phone_number
+                phone_number=phone_number,
+                designation=designation
             )
-            
 
             # ==========================================
             # AUDIT LOGGING

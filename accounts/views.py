@@ -6,6 +6,7 @@ from .models import CustomUser
 from .serializers import EmployeeCreateSerializer
 from .permissions import IsAdmin
 from audit.utils import log_action  # Audit utility import ki gayi
+from employees.models import EmployeeProfile  # <--- Ise zaroor import karein
 
 class AdminCreateEmployeeView(views.APIView):
     # Admin endpoints should use an explicit IsAdmin permission class
@@ -19,21 +20,31 @@ class AdminCreateEmployeeView(views.APIView):
 
             # Duplicate email validation
             if CustomUser.objects.filter(email=email).exists():
-                # 409 Conflict: duplicate employee/email[cite: 2]
+                # 409 Conflict: duplicate employee/email
                 return Response({"error": "Email already exists"}, status=status.HTTP_409_CONFLICT)
 
-            # Generate a strong temporary password using a cryptographically secure random generator[cite: 2]
+            # Generate a strong temporary password using a cryptographically secure random generator
             temporary_password = get_random_string(length=12)
 
-            # Create employee using the CustomUserManager
+            # 1. Create employee using the CustomUserManager
             user = CustomUser.objects.create_user(
                 email=email,
                 name=name,
                 password=temporary_password
             )
 
+            # 2. AUTOMATICALLY CREATE EMPLOYEE PROFILE (YE LINE MISSING THI)
+            EmployeeProfile.objects.create(
+                user=user,
+                employee_id=user.employee_id,
+                name=user.name,
+                email=user.email,
+                phone_number=user.phone_number
+            )
+            
+
             # ==========================================
-            # AUDIT LOGGING YAHAN ADD HOGI
+            # AUDIT LOGGING
             # ==========================================
             log_action(
                 actor=request.user,
@@ -43,7 +54,7 @@ class AdminCreateEmployeeView(views.APIView):
                 metadata={"employee_id": user.employee_id, "email": user.email}
             )
 
-            # Return credentials (Ideally over HTTPS)[cite: 2]
+            # Return credentials
             return Response({
                 "message": "Employee created successfully",
                 "employee_id": user.employee_id,

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_yasg",
+    "django_filters",  # <--- Yahan add kar diya gaya hai
 
     "accounts",
     "employees",
@@ -93,7 +94,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ettm_db',            # Naya database ka naam
+        'NAME': 'ettm_db',           # Naya database ka naam
         'USER': 'ettm_user',       # Aapka MySQL username
         'PASSWORD': 'techno', # Aapka MySQL password
         'HOST': '66.116.207.88',      # Agar local par hai toh 'localhost', live hai toh server IP
@@ -156,10 +157,19 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     
+    # === Yeh filter backends global level par add kar diye gaye hain ===
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    # ===================================================================
+    
     "EXCEPTION_HANDLER": "config.exceptions.standard_error_handler",
     
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+    
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle", # Bina login wale users ke liye
         "rest_framework.throttling.UserRateThrottle"  # Login kiye hue users ke liye

@@ -92,8 +92,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ettm_db',            # Naya database ka naam
+        'USER': 'ettm_user',       # Aapka MySQL username
+        'PASSWORD': 'techno', # Aapka MySQL password
+        'HOST': '66.116.207.88',      # Agar local par hai toh 'localhost', live hai toh server IP
+        'PORT': '3306',
     }
 }
 

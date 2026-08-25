@@ -1,19 +1,23 @@
 from rest_framework import serializers
 from .models import Task, DailyTaskUpdate
+from accounts.models import CustomUser
 
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to_name = serializers.ReadOnlyField(source='assigned_to.name')
     assigned_to_emp_id = serializers.ReadOnlyField(source='assigned_to.employee_id')
     created_by_name = serializers.ReadOnlyField(source='created_by.name')
 
+    # 👇 Ise standard PrimaryKeyRelatedField rakhein taaki dropdown ki exact ID match ho
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all()
+    )
+
     class Meta:
         model = Task
         fields = '__all__'
-        # Status aur created_by Admin APIs handle karengi, isliye inhe read_only rakha hai
         read_only_fields = ['created_by', 'status', 'created_at', 'updated_at']
 
     def validate(self, data):
-        # Deadline validation should prevent invalid dates such as a deadline before the start date[cite: 2].
         if data.get('start_date') and data.get('deadline'):
             if data['deadline'] < data['start_date']:
                 raise serializers.ValidationError({"deadline": "Deadline cannot be before the start date."})
@@ -31,5 +35,4 @@ class DailyTaskUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyTaskUpdate
         fields = '__all__'
-        # Task aur employee automatically view logic se set honge
         read_only_fields = ['task', 'employee', 'created_at', 'updated_at']

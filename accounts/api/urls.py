@@ -1,29 +1,35 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from accounts.views import AdminCreateEmployeeView, AdminResetPasswordView
+from rest_framework_simplejwt.views import TokenRefreshView
+from accounts.views import (
+    AdminCreateEmployeeView, 
+    AdminResetPasswordView, 
+    CustomTokenObtainPairView,
+    ChangePasswordView
+)
 
 router = DefaultRouter()
-
-# Agar future me ViewSets aate hain toh yahan register honge
-# router.register(r"employees", EmployeeViewSet, basename="employee")
 
 urlpatterns = [
     # Router include
     path("", include(router.urls)),
 
-    # Auth APIs (Login aur Token Refresh yahan merge kar diye)
-    path('login/', TokenObtainPairView.as_view(), name='login'),
+    # Auth APIs
+    path('login/', CustomTokenObtainPairView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
-    # Specific APIs
+    # Password Change API (Employee ke liye)
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+
+    # Admin APIs
     path(
         "admin/create-employee/",
         AdminCreateEmployeeView.as_view(),
         name="admin-create-employee",
     ),
-    
-    path('admin/reset-password/', AdminResetPasswordView.as_view(), 
-         name='admin-reset-password'),
-
+    path(
+        'admin/reset-password/', 
+        AdminResetPasswordView.as_view(), 
+        name='admin-reset-password'
+    ),
 ]

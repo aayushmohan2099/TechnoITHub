@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter  # 👈 SearchFilter import kiya
 from accounts.permissions import IsAdmin
 from .models import EmployeeProfile
 from .serializers import EmployeeProfileSerializer
@@ -9,3 +10,7 @@ class EmployeeProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdmin]
     queryset = EmployeeProfile.objects.all().order_by('-created_at')
     serializer_class = EmployeeProfileSerializer
+    
+    # 🔍 Search filter yahan joda gaya hai
+    filter_backends = [SearchFilter]
+    search_fields = ['name', 'employee_id', 'designation']

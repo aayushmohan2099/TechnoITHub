@@ -31,6 +31,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('Employee', 'Employee'),
     )
     
+    
+    id = models.AutoField(primary_key=True)
+    
     # Columns specifically requested in Section 6
     employee_id = models.CharField(max_length=20, unique=True, blank=True)
     name = models.CharField(max_length=255)
@@ -46,11 +49,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'employee_id' # Login using Employee ID[cite: 2]
+    USERNAME_FIELD = 'employee_id' 
     REQUIRED_FIELDS = ['email', 'name']
 
     def save(self, *args, **kwargs):
-        # Auto-generate unique Employee ID[cite: 2]
+        # Auto-generate unique Employee ID
         if not self.employee_id:
             last_user = CustomUser.objects.all().order_by('id').last()
             if last_user and last_user.employee_id.startswith('EMP-'):

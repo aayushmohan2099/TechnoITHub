@@ -1,16 +1,44 @@
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils.crypto import get_random_string
 from .models import CustomUser
-from .serializers import EmployeeCreateSerializer
+from .serializers import EmployeeCreateSerializer, CustomTokenObtainPairSerializer
 from .permissions import IsAdmin
 from audit.utils import log_action  # Audit utility import ki gayi
 from employees.models import EmployeeProfile  # Employee profile model import
 
 
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class ChangePasswordView(views.APIView):
+    permission_classes = [IsAuthenticated]  # Login hona zaroori hai
+
+    def post(self, request):
+        user = request.user
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+
+        if not new_password or not confirm_password:
+            return Response({"error": "Both new_password and confirm_password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Naya password set karein
+        user.set_password(new_password)
+        
+        # 2. Flag ko False kar dein taaki dobara password change na mangey
+        user.must_change_password = False
+        user.save()
+
+        return Response({"message": "Password changed successfully. You can now use your new password."}, status=status.HTTP_200_OK)
+
+
 class AdminCreateEmployeeView(views.APIView):
-    # Admin endpoints should use an explicit IsAdmin permission class
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request):
@@ -21,24 +49,27 @@ class AdminCreateEmployeeView(views.APIView):
 
             # Duplicate email validation
             if CustomUser.objects.filter(email=email).exists():
-                # 409 Conflict: duplicate employee/email
                 return Response({"error": "Email already exists"}, status=status.HTTP_409_CONFLICT)
 
-            # Generate a strong temporary password using a cryptographically secure random generator
+            # Generate a strong temporary password
             temporary_password = get_random_string(length=12)
 
-            # 1. Create employee using the CustomUserManager
+            # 1. Create employee
             user = CustomUser.objects.create_user(
                 email=email,
                 name=name,
                 password=temporary_password
             )
 
+            # must_change_password ko True set karna
+            user.must_change_password = True
+            user.save()
+
             # Optional fields request se lena
             phone_number = request.data.get('phone_number', None)
             designation = request.data.get('designation', None)
 
-            # 2. AUTOMATICALLY CREATE EMPLOYEE PROFILE
+            # 2. Automatically create Employee Profile
             EmployeeProfile.objects.create(
                 user=user,
                 employee_id=user.employee_id,
@@ -59,7 +90,6 @@ class AdminCreateEmployeeView(views.APIView):
                 metadata={"employee_id": user.employee_id, "email": user.email}
             )
 
-            # Return credentials
             return Response({
                 "message": "Employee created successfully",
                 "employee_id": user.employee_id,
@@ -70,7 +100,6 @@ class AdminCreateEmployeeView(views.APIView):
 
 
 class AdminResetPasswordView(views.APIView):
-    # Sirf authenticated admin hi password reset kar sakta hai
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request):
@@ -87,8 +116,8 @@ class AdminResetPasswordView(views.APIView):
         # Naya temporary password generate karna
         new_temporary_password = get_random_string(length=12)
         
-        # Django ka built-in method use karke password hash karke save karna
         user.set_password(new_temporary_password)
+        user.must_change_password = True  # Reset ke baad bhi password change mandatory karna
         user.save()
 
         # Audit Log record karna

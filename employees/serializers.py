@@ -4,5 +4,5 @@ from .models import EmployeeProfile
 class EmployeeProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeProfile
-        fields = ['id', 'employee_id', 'name', 'email', 'phone_number', 'designation', 'created_at']
+        fields = ['employee_id', 'name', 'email', 'phone_number', 'designation', 'created_at', 'user_id']
         read_only_fields = ['employee_id', 'created_at']

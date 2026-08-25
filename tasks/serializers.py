@@ -7,9 +7,10 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_to_emp_id = serializers.ReadOnlyField(source='assigned_to.employee_id')
     created_by_name = serializers.ReadOnlyField(source='created_by.name')
 
-    # 👇 Ise standard PrimaryKeyRelatedField rakhein taaki dropdown ki exact ID match ho
-    assigned_to = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all()
+    # 👇 Yahan humne SlugRelatedField laga diya hai jo seedha "EMP-1023" jaisi employee_id lega
+    assigned_to = serializers.SlugRelatedField(
+        queryset=CustomUser.objects.all(),
+        slug_field='employee_id'
     )
 
     class Meta:

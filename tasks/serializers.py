@@ -7,10 +7,9 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_to_emp_id = serializers.ReadOnlyField(source='assigned_to.employee_id')
     created_by_name = serializers.ReadOnlyField(source='created_by.name')
 
-    # 👇 Yahan humne SlugRelatedField laga diya hai jo seedha "EMP-1023" jaisi employee_id lega
-    assigned_to = serializers.SlugRelatedField(
-        queryset=CustomUser.objects.all(),
-        slug_field='employee_id'
+    # 👇 Yeh default PrimaryKeyRelatedField hai jo seedha numeric ID (jaise 19) accept karega
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all()
     )
 
     class Meta:

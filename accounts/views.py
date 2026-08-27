@@ -2,10 +2,10 @@ from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.parsers import MultiPartParser, FormParser  # 👈 Image upload ke liye zaroori hai
+from rest_framework.parsers import MultiPartParser, FormParser  # 👈 File upload ke liye zaroori hai
 from django.utils.crypto import get_random_string
 from .models import CustomUser
-from .serializers import EmployeeCreateSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer  # 👈 UserProfileSerializer import karein
+from .serializers import EmployeeCreateSerializer, CustomTokenObtainPairSerializer
 from .permissions import IsAdmin
 from audit.utils import log_action  
 from employees.models import EmployeeProfile  
@@ -124,22 +124,13 @@ class AdminResetPasswordView(views.APIView):
 
 
 # ==========================================
-# 🆕 EMPLOYEE PROFILE & DP (PHOTO) VIEWS
+# 🖼️ UPDATE PROFILE PICTURE (DP) API
 # ==========================================
-
-class CurrentUserProfileView(views.APIView):
-    """ Logged-in employee apne dashboard ke liye apna naam aur photo yahan se dekhega """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        serializer = UserProfileSerializer(request.user, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class UpdateProfilePictureView(views.APIView):
     """ Employee apni DP (Profile Picture) yahan upload ya change karega """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # 👈 File/Image accept karne ke liye zaroori hai
+    parser_classes = [MultiPartParser, FormParser]
 
     def patch(self, request):
         user = request.user
@@ -151,8 +142,11 @@ class UpdateProfilePictureView(views.APIView):
         user.profile_picture = profile_pic
         user.save()
 
-        serializer = UserProfileSerializer(user, context={'request': request})
+        profile_pic_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+
         return Response({
             "message": "Profile picture updated successfully!",
-            "data": serializer.data
+            "employee_id": user.employee_id,
+            "name": user.name,
+            "profile_picture": profile_pic_url
         }, status=status.HTTP_200_OK)

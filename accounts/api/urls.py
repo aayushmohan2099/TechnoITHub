@@ -3,9 +3,11 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from accounts.views import (
     AdminCreateEmployeeView, 
-    AdminResetPasswordView, 
+    AdminResetPasswordView,
+    CurrentUserProfileView, 
     CustomTokenObtainPairView,
-    ChangePasswordView
+    ChangePasswordView,
+    UpdateProfilePictureView
 )
 
 router = DefaultRouter()
@@ -32,4 +34,9 @@ urlpatterns = [
         AdminResetPasswordView.as_view(), 
         name='admin-reset-password'
     ),
+    
+    path('me/', CurrentUserProfileView.as_view(), 
+         name='current-user-profile'),
+    path('update-dp/', UpdateProfilePictureView.as_view(),
+     name='update-profile-picture'),
 ]

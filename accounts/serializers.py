@@ -24,3 +24,20 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['employee_id'] = self.user.employee_id
         data['name'] = self.user.name
         return data
+
+
+# 👇 Yeh naya serializer add kiya hai Profile aur DP ke liye
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'employee_id', 'name', 'email', 'role', 'profile_picture', 'must_change_password']
+
+    def get_profile_picture(self, obj):
+        request = self.context.get('request')
+        if obj.profile_picture and request:
+            return request.build_absolute_uri(obj.profile_picture.url)
+        elif obj.profile_picture:
+            return obj.profile_picture.url
+        return None

@@ -4,24 +4,17 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from .models import Attendance
 from .serializers import AttendanceSerializer
-from accounts.permissions import IsAdmin # Admin permission import kiya
+from accounts.permissions import IsAdmin
 
 class EmployeePunchAPIView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-        
-        # Check whether an open attendance record already exists (Punch-out missing)[cite: 2]
         open_record = Attendance.objects.filter(employee=user, punch_out__isnull=True).first()
 
         if open_record:
-            # ========================
-            # PUNCH-OUT FLOW[cite: 2]
-            # ========================
-            open_record.punch_out = timezone.now() # Use server timestamp[cite: 2]
-            
-            # Calculate duration in seconds[cite: 2]
+            open_record.punch_out = timezone.now()
             duration = open_record.punch_out - open_record.punch_in
             open_record.total_seconds = int(duration.total_seconds())
             open_record.save()
@@ -33,10 +26,6 @@ class EmployeePunchAPIView(views.APIView):
                 "total_seconds": open_record.total_seconds
             }, status=status.HTTP_200_OK)
         else:
-            # ========================
-            # PUNCH-IN FLOW[cite: 2]
-            # ========================
-            # Create today's attendance record with server timestamp[cite: 2]
             new_record = Attendance.objects.create(
                 employee=user,
                 punch_in=timezone.now()
@@ -49,18 +38,32 @@ class EmployeePunchAPIView(views.APIView):
 
 
 class EmployeeAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Return own attendance for Employee[cite: 2] """
+    """ Return own attendance for Employee with Date Filter """
     permission_classes = [IsAuthenticated]
     serializer_class = AttendanceSerializer
 
     def get_queryset(self):
-        # Strict Data Isolation: Fetch records through the authenticated employee relationship[cite: 2]
-        return Attendance.objects.filter(employee=self.request.user).order_by('-attendance_date', '-punch_in')
+        queryset = Attendance.objects.filter(employee=self.request.user)
+        
+        # 📅 Date Filter Query Parameter: ?date=2026-08-27
+        date_param = self.request.query_params.get('date')
+        if date_param:
+            queryset = queryset.filter(attendance_date=date_param)
+            
+        return queryset.order_by('-attendance_date', '-punch_in')
 
 
 class AdminAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Global attendance report for Admin[cite: 2] """
-    # Explicit IsAdmin permission class[cite: 2]
+    """ Global attendance report for Admin with Date Filter """
     permission_classes = [IsAuthenticated, IsAdmin]
     serializer_class = AttendanceSerializer
-    queryset = Attendance.objects.all().order_by('-attendance_date', '-punch_in')
+
+    def get_queryset(self):
+        queryset = Attendance.objects.all()
+        
+        # 📅 Date Filter Query Parameter: ?date=2026-08-27
+        date_param = self.request.query_params.get('date')
+        if date_param:
+            queryset = queryset.filter(attendance_date=date_param)
+            
+        return queryset.order_by('-attendance_date', '-punch_in')

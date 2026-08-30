@@ -1,3 +1,4 @@
+import os
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -124,20 +125,29 @@ class AdminResetPasswordView(views.APIView):
 
 
 # ==========================================
-# 🖼️ UPDATE PROFILE PICTURE (DP) API
+# 🖼️ UPDATE & DELETE PROFILE PICTURE (DP) API
 # ==========================================
 
 class UpdateProfilePictureView(views.APIView):
-    """ Employee apni DP (Profile Picture) yahan upload ya change karega """
+    """ Employee apni DP (Profile Picture) update ya delete karega ek hi endpoint se """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    # 1. DP Update / Upload karne ke liye (PATCH request)
     def patch(self, request):
         user = request.user
         profile_pic = request.FILES.get('profile_picture')
 
         if not profile_pic:
             return Response({"error": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Purani photo delete karna taaki storage clean rahe
+        if user.profile_picture:
+            user.profile_picture.delete(save=False)
+
+        # File name ko unique banana taaki overwrite na ho
+        ext = os.path.splitext(profile_pic.name)[1]
+        profile_pic.name = f"{user.employee_id}_{get_random_string(8)}{ext}"
 
         user.profile_picture = profile_pic
         user.save()
@@ -149,4 +159,22 @@ class UpdateProfilePictureView(views.APIView):
             "employee_id": user.employee_id,
             "name": user.name,
             "profile_picture": profile_pic_url
+        }, status=status.HTTP_200_OK)
+
+    # 2. DP Delete karne ke liye (DELETE request)
+    def delete(self, request):
+        user = request.user
+
+        if not user.profile_picture:
+            return Response({"error": "No profile picture found to delete."}, status=status.HTTP_404_NOT_FOUND)
+
+        user.profile_picture.delete(save=False)
+        user.profile_picture = None
+        user.save()
+
+        return Response({
+            "message": "Profile picture deleted successfully!",
+            "employee_id": user.employee_id,
+            "name": user.name,
+            "profile_picture": None
         }, status=status.HTTP_200_OK)

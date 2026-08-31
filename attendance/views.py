@@ -11,9 +11,13 @@ class EmployeePunchAPIView(views.APIView):
 
     def post(self, request):
         user = request.user
+        today = timezone.now().date()
+
+        # 1. Check karo kya abhi koi active (open) session chal raha hai? (Matlab user working hai)
         open_record = Attendance.objects.filter(employee=user, punch_out__isnull=True).first()
 
         if open_record:
+            # Agar open record hai, iska matlab yeh request PUNCH OUT ke liye hai
             open_record.punch_out = timezone.now()
             duration = open_record.punch_out - open_record.punch_in
             open_record.total_seconds = int(duration.total_seconds())
@@ -25,16 +29,31 @@ class EmployeePunchAPIView(views.APIView):
                 "punch_out_time": open_record.punch_out,
                 "total_seconds": open_record.total_seconds
             }, status=status.HTTP_200_OK)
-        else:
-            new_record = Attendance.objects.create(
-                employee=user,
-                punch_in=timezone.now()
+
+        # 2. Agar open record nahi hai, toh check karo kya aaj ke din employee pehle hi punch-in/punch-out kar chuka hai?
+        already_done_today = Attendance.objects.filter(
+            employee=user, 
+            attendance_date=today, 
+            punch_out__isnull=False
+        ).exists()
+
+        if already_done_today:
+            return Response(
+                {"error": "You have already completed your attendance for today."},
+                status=status.HTTP_400_BAD_REQUEST
             )
-            return Response({
-                "message": "Punched in successfully",
-                "punch_in_time": new_record.punch_in,
-                "status": "Currently Working"
-            }, status=status.HTTP_201_CREATED)
+
+        # 3. Agar aaj koi record nahi hai, toh naya PUNCH IN create karo
+        new_record = Attendance.objects.create(
+            employee=user,
+            attendance_date=today, # Ensure karein yeh field aapke model mein hai
+            punch_in=timezone.now()
+        )
+        return Response({
+            "message": "Punched in successfully",
+            "punch_in_time": new_record.punch_in,
+            "status": "Currently Working"
+        }, status=status.HTTP_201_CREATED)
 
 
 class EmployeeAttendanceViewSet(viewsets.ReadOnlyModelViewSet):

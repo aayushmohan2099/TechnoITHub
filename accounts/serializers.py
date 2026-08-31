@@ -22,19 +22,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # 🖼️ Profile picture ka full URL nikalna
         request = self.context.get('request')
-        profile_pic_url = None
-        if user.profile_picture:
-            if request:
-                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
-            else:
-                profile_pic_url = user.profile_picture.url
 
         # 🚀 Login response ke sath saari details ek sath bhejna
         data['role'] = user.role
         data['must_change_password'] = user.must_change_password
         data['employee_id'] = user.employee_id
         data['name'] = user.name
-        data['profile_picture'] = profile_pic_url  # 👈 Yeh dekhiye, login par DP direct mil jayegi!
+        data['profile_picture'] = user.profile_picture  # 👈 Yeh dekhiye, login par DP direct mil jayegi!
         
         return data
 

@@ -8,7 +8,6 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, name=name, **extra_fields)
         
-        # Django password hashing use karna hai; plaintext store nahi karna
         if password:
             user.set_password(password)
         else:
@@ -31,10 +30,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('Employee', 'Employee'),
     )
     
-    
     id = models.AutoField(primary_key=True)
     
-    # Columns specifically requested in Section 6
     employee_id = models.CharField(max_length=20, unique=True, blank=True)
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
@@ -54,15 +51,32 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['email', 'name']
 
     def save(self, *args, **kwargs):
-        # Auto-generate unique Employee ID
+        # Auto-generate unique ID based on Role
         if not self.employee_id:
-            last_user = CustomUser.objects.all().order_by('id').last()
-            if last_user and last_user.employee_id.startswith('EMP-'):
-                last_id_num = int(last_user.employee_id.split('-')[1])
-                self.employee_id = f"EMP-{last_id_num + 1}"
+            if self.role == 'Admin':
+                # Agar role Admin hai, toh ADM- se ID shuru hogi
+                last_admin = CustomUser.objects.filter(employee_id__startswith='ADM-').order_by('id').last()
+                if last_admin:
+                    try:
+                        last_id_num = int(last_admin.employee_id.split('-')[1])
+                        self.employee_id = f"ADM-{last_id_num + 1}"
+                    except (IndexError, ValueError):
+                        self.employee_id = "ADM-1000"
+                else:
+                    self.employee_id = "ADM-1000"
             else:
-                self.employee_id = "EMP-1001"
+                # Agar role Employee hai, toh EMP- se ID shuru hogi
+                last_employee = CustomUser.objects.filter(employee_id__startswith='EMP-').order_by('id').last()
+                if last_employee:
+                    try:
+                        last_id_num = int(last_employee.employee_id.split('-')[1])
+                        self.employee_id = f"EMP-{last_id_num + 1}"
+                    except (IndexError, ValueError):
+                        self.employee_id = "EMP-1000"
+                else:
+                    self.employee_id = "EMP-1000"
+                    
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.employee_id})"
+        return f"{self.name} ({self.employee_id}) - {self.role}"

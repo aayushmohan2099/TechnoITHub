@@ -14,17 +14,17 @@ from pathlib import Path
 from datetime import timedelta
 import corsheaders
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+
 SECRET_KEY = 'django-insecure-=2fb#bu4t4z97h#y1=($*z5mxo+gx^r8f-#%kmufxsakfdgv@g'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
@@ -33,7 +33,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://66.116.207.88:14250",
 ]
 
-# Application definition
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_yasg",
-    "django_filters",  # <--- Yahan add kar diya gaya hai
+    "django_filters",  
 
     "accounts",
     "employees",
@@ -88,23 +88,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ettm_db',           # Naya database ka naam
-        'USER': 'ettm_user',       # Aapka MySQL username
-        'PASSWORD': 'techno', # Aapka MySQL password
-        'HOST': '66.116.207.88',      # Agar local par hai toh 'localhost', live hai toh server IP
+        'NAME': 'ettm_db',           
+        'USER': 'ettm_user',       
+        'PASSWORD': 'techno', 
+        'HOST': '66.116.207.88',      
         'PORT': '3306',
     }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -122,8 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.1/topics/i18n/
+
 
 LANGUAGE_CODE = 'en-us'
 
@@ -134,14 +131,11 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
+
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 MAILERS = {
     'default': {
@@ -157,13 +151,13 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     
-    # === Yeh filter backends global level par add kar diye gaye hain ===
+    
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    # ===================================================================
+   
     
     "EXCEPTION_HANDLER": "config.exceptions.standard_error_handler",
     
@@ -172,21 +166,19 @@ REST_FRAMEWORK = {
      "MAX_PAGE_SIZE": 500,
      
     "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.AnonRateThrottle", # Bina login wale users ke liye
-        "rest_framework.throttling.UserRateThrottle"  # Login kiye hue users ke liye
+        "rest_framework.throttling.AnonRateThrottle", 
+        "rest_framework.throttling.UserRateThrottle"  
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "5/minute",  # Anonymous API calls (jaise login) max 5 per minute
-        "user": "60/minute"  # Logged-in employee/admin max 60 calls per minute
+        "anon": "5/minute",  
+        "user": "60/minute"  
     }
 }
 
-# ==========================================
-# SIMPLE JWT TOKEN LIFETIME CONFIGURATION
-# ==========================================
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),   # Token ab 1 din tak valid rahega
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Refresh token 7 din tak valid rahega
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),   
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  
 }
 
 CORS_ALLOW_ALL_ORIGINS = True

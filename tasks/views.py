@@ -13,19 +13,29 @@ from audit.utils import log_action
 # ==========================================
 
 class AdminTaskViewSet(viewsets.ModelViewSet):
-    """ Admin creates, assigns and views all tasks with Search & Date Filter. """
+    """ Admin creates, assigns and views all tasks with Search, Date, Status & Priority Filter. """
     permission_classes = [IsAuthenticated, IsAdmin]
     serializer_class = TaskSerializer
     filter_backends = [SearchFilter]
-    search_fields = ['title', 'assigned_to__name', 'assigned_to__employee_id'] 
+    search_fields = ['title', 'assigned_to__name', 'assigned_to__employee_id', 'priority'] 
 
     def get_queryset(self):
         queryset = Task.objects.all().order_by('-created_at')
         
-        # 📅 Date Filter Query Parameter: ?date=2026-09-01 (created_at date ke base par)
+      
         date_param = self.request.query_params.get('date')
         if date_param:
             queryset = queryset.filter(created_at__date=date_param)
+            
+       
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+
+        
+        priority_param = self.request.query_params.get('priority')
+        if priority_param:
+            queryset = queryset.filter(priority=priority_param)
             
         return queryset
 
@@ -72,7 +82,6 @@ class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = DailyTaskUpdate.objects.all().order_by('-created_at')
         
-        # 📅 Date Filter Query Parameter for Work Logs: ?date=2026-09-01
         date_param = self.request.query_params.get('date')
         if date_param:
             queryset = queryset.filter(created_at__date=date_param)
@@ -85,19 +94,29 @@ class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
 # ==========================================
 
 class EmployeeTaskViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Employee views own tasks with Search & Date Filter. """
+    """ Employee views own tasks with Search, Date, Status & Priority Filter. """
     permission_classes = [IsAuthenticated]
     serializer_class = TaskSerializer
     filter_backends = [SearchFilter]
-    search_fields = ['title', 'description', 'status']
+    search_fields = ['title', 'description', 'status', 'priority']
 
     def get_queryset(self):
         queryset = Task.objects.filter(assigned_to=self.request.user)
         
-        
+       
         date_param = self.request.query_params.get('date')
         if date_param:
             queryset = queryset.filter(created_at__date=date_param)
+            
+       
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+
+       
+        priority_param = self.request.query_params.get('priority')
+        if priority_param:
+            queryset = queryset.filter(priority=priority_param)
             
         return queryset.order_by('-deadline')
 

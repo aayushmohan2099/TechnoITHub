@@ -6,11 +6,27 @@ from .models import EmployeeProfile
 from .serializers import EmployeeProfileSerializer
 
 class EmployeeProfileViewSet(viewsets.ModelViewSet):
-    """ Admin can view and manage employee profiles """
+    """ Admin can view, update and permanently delete employee profiles and their users """
     permission_classes = [IsAuthenticated, IsAdmin]
     queryset = EmployeeProfile.objects.all().order_by('-created_at')
     serializer_class = EmployeeProfileSerializer
     
     
+    lookup_field = 'user'  
+    
     filter_backends = [SearchFilter]
     search_fields = ['name', 'employee_id', 'designation']
+
+    def perform_update(self, serializer):
+        profile = serializer.save()
+        user = profile.user
+        if profile.name:
+            user.name = profile.name
+        if profile.email:
+            user.email = profile.email
+        user.save()
+
+    def perform_destroy(self, instance):
+       
+        user = instance.user  
+        user.delete()         

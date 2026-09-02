@@ -15,31 +15,31 @@ from audit.utils import log_action
 # ==========================================
 
 class AdminTaskViewSet(viewsets.ModelViewSet):
-    """ Admin creates, assigns, views, updates and deletes tasks with filters, ordering & overdue check. """
+    """ Admin tasks management with start_date filter, ordering & overdue check. """
     permission_classes = [IsAuthenticated, IsAdmin]
     serializer_class = TaskSerializer
     
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'assigned_to__name', 'assigned_to__employee_id', 'priority'] 
     
-    # Sorting fields (e.g., ?ordering=created_at or ?ordering=-created_at or ?ordering=deadline)
-    ordering_fields = ['created_at', 'deadline', 'priority']
-    ordering = ['-created_at'] # Default: Newest first
+   
+    ordering_fields = ['start_date', 'deadline', 'priority']
+    ordering = ['-start_date'] 
 
     def get_queryset(self):
         queryset = Task.objects.all()
         
-        # Date Filter
+       
         date_param = self.request.query_params.get('date')
         if date_param:
-            queryset = queryset.filter(created_at__date=date_param)
+            queryset = queryset.filter(start_date=date_param)
             
-        # Status Filter
+        
         status_param = self.request.query_params.get('status')
         if status_param:
             queryset = queryset.filter(status=status_param)
 
-        # Priority Filter
+        
         priority_param = self.request.query_params.get('priority')
         if priority_param:
             queryset = queryset.filter(priority=priority_param)
@@ -48,13 +48,7 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='overdue-tasks')
     def overdue_tasks(self, request):
-        """ 
-        Yeh endpoint un tasks ko dhoondhega jinki deadline nikal chuki hai 
-        aur status abhi bhi 'Completed' nahi hua hai (Admin Dashboard ke liye).
-        """
         today = timezone.now().date()
-        
-        # Deadline aaj se pehle ki ho aur status Completed na ho
         overdue_qs = self.get_queryset().exclude(status='Completed').filter(deadline__lt=today)
         
         serializer = self.get_serializer(overdue_qs, many=True)
@@ -137,20 +131,23 @@ class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
 # ==========================================
 
 class EmployeeTaskViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Employee views own tasks with Search, Date, Status, Priority & Ordering Filter. """
+    """ Employee views own tasks with start_date filter & ordering support. """
     permission_classes = [IsAuthenticated]
     serializer_class = TaskSerializer
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'status', 'priority']
-    ordering_fields = ['deadline', 'created_at', 'priority']
+    
+   
+    ordering_fields = ['deadline', 'start_date', 'priority']
     ordering = ['-deadline']
 
     def get_queryset(self):
         queryset = Task.objects.filter(assigned_to=self.request.user)
         
+       
         date_param = self.request.query_params.get('date')
         if date_param:
-            queryset = queryset.filter(created_at__date=date_param)
+            queryset = queryset.filter(start_date=date_param)
             
         status_param = self.request.query_params.get('status')
         if status_param:

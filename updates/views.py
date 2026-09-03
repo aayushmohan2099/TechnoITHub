@@ -73,6 +73,7 @@ class UploadBuildAPIView(views.APIView):
     Endpoint: /api/v1/updates/upload-build/
     """
     permission_classes = [AllowAny]
+    authentication_classes = []  # Agar aap chahte hain ki ye endpoint public ho
 
     def post(self, request):
         version_code = request.data.get('version_code')

@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
         count = 0
         for att in active_attendances:
-            # 2. Uss din ki raat 11:59:59 PM par punch-out time set kar do
+           
             end_of_day = timezone.make_aware(datetime.combine(att.attendance_date, time(23, 59, 59)))
             
             att.punch_out = end_of_day

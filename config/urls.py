@@ -31,6 +31,7 @@ urlpatterns = [
     path("api/v1/attendance/", include("attendance.api.urls")),
     path("api/v1/tasks/", include("tasks.api.urls")),
     path("api/v1/employees/", include("employees.api.urls")),
+    path("api/v1/updates/", include("updates.api.urls")),
 ]
 
 urlpatterns += [

@@ -73,7 +73,7 @@ class UploadBuildAPIView(views.APIView):
     Endpoint: /api/v1/updates/upload-build/
     """
     permission_classes = [AllowAny]
-    authentication_classes = []  # Agar aap chahte hain ki ye endpoint public ho
+    authentication_classes = []  # <--- Yeh error hatane ke liye zaroori hai!
 
     def post(self, request):
         version_code = request.data.get('version_code')
@@ -83,7 +83,7 @@ class UploadBuildAPIView(views.APIView):
         if not version_code or not build_file:
             return Response({"error": "Version code and build file are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Agar version pehle se hai toh update karega, nahi toh naya create karega
+        # Database mein record save aur file server par upload hogi
         build, created = AppBuild.objects.update_or_create(
             version_code=version_code,
             defaults={'build_file': build_file, 'changelog': changelog}

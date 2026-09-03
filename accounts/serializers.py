@@ -39,7 +39,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'employee_id', 'name', 'email', 'role', 'profile_picture', 'must_change_password']
+        fields = ['id', 'employee_id', 'name', 'email', 'role', 'profile_picture', 'must_change_password', 'designation',]
 
     def get_profile_picture(self, obj):
         request = self.context.get('request')

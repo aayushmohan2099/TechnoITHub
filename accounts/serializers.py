@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import CustomUser
+from employees.models import EmployeeProfile
 
 class EmployeeCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,14 +12,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Token ke andar custom claims add karna
         token['role'] = user.role
         token['must_change_password'] = user.must_change_password
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        user = self.user  # Logged-in user object
+        user = self.user  # Logged-in CustomUser object
 
         # 🖼️ Profile picture ka full URL nikalna
         request = self.context.get('request')
@@ -28,17 +28,21 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         elif user.profile_picture:
             profile_pic_url = user.profile_picture.url
 
-        # 🏷️ EmployeeProfile se designation nikalna (agar exist karta hai)
-        designation = None
-        if hasattr(user, 'employeeprofile') and user.employeeprofile:
-            designation = user.employeeprofile.designation
+        # 🏷️ EmployeeProfile table se safe tarike se designation nikalna
+        designation = "Employee"  # Default fallback agar profile na mile
+        try:
+            profile = EmployeeProfile.objects.filter(user=user).first()
+            if profile and profile.designation:
+                designation = profile.designation
+        except Exception:
+            pass
 
-        # 🚀 Login response ke sath saari details ek sath bhejna
+        # 🚀 Login response ke sath saari details bhejna
         data['role'] = user.role
         data['must_change_password'] = user.must_change_password
         data['employee_id'] = user.employee_id
         data['name'] = user.name
-        data['designation'] = designation  # 👈 Yeh line add kar di gayi hai
+        data['designation'] = designation  # 👈 Ab yahan sahi designation aayega
         data['profile_picture'] = profile_pic_url 
         
         return data
@@ -46,7 +50,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
-    designation = serializers.SerializerMethodField() # Optional:agar profile API mein bhi chahiye
+    designation = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -61,6 +65,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return None
 
     def get_designation(self, obj):
-        if hasattr(obj, 'employeeprofile') and obj.employeeprofile:
-            return obj.employeeprofile.designation
+        try:
+            profile = EmployeeProfile.objects.filter(user=obj).first()
+            if profile:
+                return profile.designation
+        except Exception:
+            pass
         return None

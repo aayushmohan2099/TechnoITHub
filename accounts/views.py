@@ -3,13 +3,14 @@ from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.parsers import MultiPartParser, FormParser  # 👈 File upload ke liye zaroori hai
+from rest_framework.parsers import MultiPartParser, FormParser 
 from django.utils.crypto import get_random_string
+
 from .models import CustomUser
 from .serializers import EmployeeCreateSerializer, CustomTokenObtainPairSerializer
 from .permissions import IsAdmin
 from audit.utils import log_action  
-from employees.models import EmployeeProfile  
+from employees.models import EmployeeProfile, Designation  
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -61,7 +62,15 @@ class AdminCreateEmployeeView(views.APIView):
             user.save()
 
             phone_number = request.data.get('phone_number', None)
-            designation = request.data.get('designation', None)
+            designation_id = request.data.get('designation', None)
+
+            # 🔍 Database se designation object safely fetch karna
+            designation_obj = None
+            if designation_id:
+                try:
+                    designation_obj = Designation.objects.get(id=designation_id)
+                except (Designation.DoesNotExist, ValueError, TypeError):
+                    designation_obj = None
 
             EmployeeProfile.objects.create(
                 user=user,
@@ -69,7 +78,7 @@ class AdminCreateEmployeeView(views.APIView):
                 name=user.name,
                 email=user.email,
                 phone_number=phone_number,
-                designation=designation
+                designation=designation_obj
             )
 
             log_action(

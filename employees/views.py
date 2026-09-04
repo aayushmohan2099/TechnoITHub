@@ -1,21 +1,24 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.filters import SearchFilter  
+from rest_framework.filters import SearchFilter
 from accounts.permissions import IsAdmin
-from .models import EmployeeProfile
-from .serializers import EmployeeProfileSerializer
+from .models import EmployeeProfile, Designation
+from .serializers import EmployeeProfileSerializer, DesignationSerializer
+
+class DesignationViewSet(viewsets.ModelViewSet):
+    """ Pure database-backed designations API (Frontend dropdown ke liye) """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    queryset = Designation.objects.all().order_by('id')
+    serializer_class = DesignationSerializer
+
 
 class EmployeeProfileViewSet(viewsets.ModelViewSet):
-    """ Admin can view, update and permanently delete employee profiles and their users """
     permission_classes = [IsAuthenticated, IsAdmin]
     queryset = EmployeeProfile.objects.all().order_by('-created_at')
     serializer_class = EmployeeProfileSerializer
-    
-    
     lookup_field = 'user'  
-    
     filter_backends = [SearchFilter]
-    search_fields = ['name', 'employee_id', 'designation']
+    search_fields = ['name', 'employee_id', 'designation__title']
 
     def perform_update(self, serializer):
         profile = serializer.save()
@@ -27,6 +30,5 @@ class EmployeeProfileViewSet(viewsets.ModelViewSet):
         user.save()
 
     def perform_destroy(self, instance):
-       
         user = instance.user  
-        user.delete()         
+        user.delete()

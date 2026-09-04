@@ -1,74 +1,62 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.core.exceptions import ObjectDoesNotExist
 from .models import CustomUser
-from employees.models import EmployeeProfile
+from employees.models import EmployeeProfile, Designation
 
 class EmployeeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['name', 'email']
 
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['role'] = user.role
-        token['must_change_password'] = user.must_change_password
+        token['role'] = getattr(user, 'role', None)
+        token['must_change_password'] = getattr(user, 'must_change_password', None)
+        try:
+            if hasattr(user, 'employee_profile') and user.employee_profile and user.employee_profile.designation:
+                token['designation'] = user.employee_profile.designation.title
+        except (ObjectDoesNotExist, AttributeError):
+            pass
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-        user = self.user  # Logged-in CustomUser object
-
-        # 🖼️ Profile picture ka full URL nikalna
-        request = self.context.get('request')
-        profile_pic_url = None
-        if user.profile_picture and request:
-            profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
-        elif user.profile_picture:
-            profile_pic_url = user.profile_picture.url
-
-        # 🏷️ EmployeeProfile table se safe tarike se designation nikalna
-        designation = "Employee"  # Default fallback agar profile na mile
         try:
-            profile = EmployeeProfile.objects.filter(user=user).first()
-            if profile and profile.designation:
-                designation = profile.designation
-        except Exception:
-            pass
+            data = super().validate(attrs)
+            user = self.user  
 
-        # 🚀 Login response ke sath saari details bhejna
-        data['role'] = user.role
-        data['must_change_password'] = user.must_change_password
-        data['employee_id'] = user.employee_id
-        data['name'] = user.name
-        data['designation'] = designation  # 👈 Ab yahan sahi designation aayega
-        data['profile_picture'] = profile_pic_url 
-        
-        return data
+            data['role'] = getattr(user, 'role', None)
+            data['must_change_password'] = getattr(user, 'must_change_password', None)
+            data['employee_id'] = getattr(user, 'employee_id', None)
+            data['name'] = getattr(user, 'name', None)
+            
+            profile_pic_url = None
+            try:
+                if getattr(user, 'profile_picture', None):
+                    profile_pic_url = user.profile_picture.url
+            except (ValueError, AttributeError):
+                profile_pic_url = None
+                
+            data['profile_picture'] = profile_pic_url
+            
+            # Default null-safe values
+            data['designation_id'] = None
+            data['designation_title'] = None
+            
+            try:
+                profile = getattr(user, 'employee_profile', None)
+                if profile and profile.designation:
+                    data['designation_id'] = profile.designation.id
+                    data['designation_title'] = profile.designation.title
+            except (ObjectDoesNotExist, AttributeError):
+                pass
+            
+            return data
 
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    profile_picture = serializers.SerializerMethodField()
-    designation = serializers.SerializerMethodField()
-
-    class Meta:
-        model = CustomUser
-        fields = ['id', 'employee_id', 'name', 'email', 'role', 'profile_picture', 'must_change_password', 'designation']
-
-    def get_profile_picture(self, obj):
-        request = self.context.get('request')
-        if obj.profile_picture and request:
-            return request.build_absolute_uri(obj.profile_picture.url)
-        elif obj.profile_picture:
-            return obj.profile_picture.url
-        return None
-
-    def get_designation(self, obj):
-        try:
-            profile = EmployeeProfile.objects.filter(user=obj).first()
-            if profile:
-                return profile.designation
-        except Exception:
-            pass
-        return None
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise e

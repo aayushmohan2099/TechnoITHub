@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "updates",
     "accounts",
     "employees",
+    "django_celery_results",
     "attendance",
     "tasks",
     "reports",
@@ -181,6 +182,17 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  
 }
 
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'auto-punch-out-every-midnight': {
+        'task': 'attendance.tasks.auto_punch_out_task', 
+        'schedule': crontab(
+           hour=23, minute=59
+        ), 
+    },
+}
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 MEDIA_URL = '/media/'
@@ -188,3 +200,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# MySQL database ko Celery ka broker banane ke liye
+CELERY_BROKER_URL = (
+    'sqla+mysql://ettm_user:techno@66.116.207.88:3306/ettm_db'
+)
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_RESULT_BACKEND = 'django-db'

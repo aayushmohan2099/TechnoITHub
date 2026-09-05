@@ -50,6 +50,17 @@ class AdminCreateEmployeeView(views.APIView):
             if CustomUser.objects.filter(email=email).exists():
                 return Response({"error": "Email already exists"}, status=status.HTTP_409_CONFLICT)
 
+            # 🛑 Strict Check: Designation dena ab compulsory hai!
+            designation_id = request.data.get('designation')
+            if not designation_id:
+                return Response({"error": "Designation is required. Please select a designation ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Database se designation fetch karna
+            try:
+                designation_obj = Designation.objects.get(id=designation_id)
+            except (Designation.DoesNotExist, ValueError, TypeError):
+                return Response({"error": "Invalid designation ID provided."}, status=status.HTTP_400_BAD_REQUEST)
+
             temporary_password = get_random_string(length=12)
 
             user = CustomUser.objects.create_user(
@@ -62,15 +73,6 @@ class AdminCreateEmployeeView(views.APIView):
             user.save()
 
             phone_number = request.data.get('phone_number', None)
-            designation_id = request.data.get('designation', None)
-
-            # 🔍 Database se designation object safely fetch karna
-            designation_obj = None
-            if designation_id:
-                try:
-                    designation_obj = Designation.objects.get(id=designation_id)
-                except (Designation.DoesNotExist, ValueError, TypeError):
-                    designation_obj = None
 
             EmployeeProfile.objects.create(
                 user=user,
@@ -78,7 +80,7 @@ class AdminCreateEmployeeView(views.APIView):
                 name=user.name,
                 email=user.email,
                 phone_number=phone_number,
-                designation=designation_obj
+                designation=designation_obj  # Ab yahan hamesha valid designation jayegi, kabhi null nahi hogi!
             )
 
             log_action(
@@ -86,17 +88,17 @@ class AdminCreateEmployeeView(views.APIView):
                 action="CREATE_EMPLOYEE",
                 entity_type="CustomUser",
                 entity_id=user.id,
-                metadata={"employee_id": user.employee_id, "email": user.email}
+                metadata={"employee_id": user.employee_id, "email": user.email, "designation": designation_obj.title}
             )
 
             return Response({
                 "message": "Employee created successfully",
                 "employee_id": user.employee_id,
-                "temporary_password": temporary_password
+                "temporary_password": temporary_password,
+                "designation_title": designation_obj.title
             }, status=status.HTTP_201_CREATED)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class AdminResetPasswordView(views.APIView):
     permission_classes = [IsAuthenticated, IsAdmin]

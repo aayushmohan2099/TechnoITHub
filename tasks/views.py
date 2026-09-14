@@ -22,23 +22,30 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'assigned_to__name', 'assigned_to__employee_id', 'priority'] 
     
-   
     ordering_fields = ['start_date', 'deadline', 'priority']
     ordering = ['-start_date'] 
 
     def get_queryset(self):
         queryset = Task.objects.all()
         
-       
+        # --- Date Filters (Single Date & Date Range) ---
         date_param = self.request.query_params.get('date')
+        from_date = self.request.query_params.get('from_date')
+        to_date = self.request.query_params.get('to_date')
+
         if date_param:
             queryset = queryset.filter(start_date=date_param)
+        elif from_date and to_date:
+            queryset = queryset.filter(start_date__range=[from_date, to_date])
+        elif from_date:
+            queryset = queryset.filter(start_date__gte=from_date)
+        elif to_date:
+            queryset = queryset.filter(start_date__lte=to_date)
             
-        
+        # --- Other Filters ---
         status_param = self.request.query_params.get('status')
         if status_param:
             queryset = queryset.filter(status=status_param)
-
         
         priority_param = self.request.query_params.get('priority')
         if priority_param:
@@ -120,9 +127,21 @@ class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = DailyTaskUpdate.objects.all()
+        
+        # --- Date Filters (Single Date & Date Range) ---
         date_param = self.request.query_params.get('date')
+        from_date = self.request.query_params.get('from_date')
+        to_date = self.request.query_params.get('to_date')
+
         if date_param:
             queryset = queryset.filter(created_at__date=date_param)
+        elif from_date and to_date:
+            queryset = queryset.filter(created_at__date__range=[from_date, to_date])
+        elif from_date:
+            queryset = queryset.filter(created_at__date__gte=from_date)
+        elif to_date:
+            queryset = queryset.filter(created_at__date__lte=to_date)
+            
         return queryset
 
 
@@ -137,18 +156,27 @@ class EmployeeTaskViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'status', 'priority']
     
-   
     ordering_fields = ['deadline', 'start_date', 'priority']
     ordering = ['-deadline']
 
     def get_queryset(self):
         queryset = Task.objects.filter(assigned_to=self.request.user)
         
-       
+        # --- Date Filters (Single Date & Date Range) ---
         date_param = self.request.query_params.get('date')
+        from_date = self.request.query_params.get('from_date')
+        to_date = self.request.query_params.get('to_date')
+
         if date_param:
             queryset = queryset.filter(start_date=date_param)
-            
+        elif from_date and to_date:
+            queryset = queryset.filter(start_date__range=[from_date, to_date])
+        elif from_date:
+            queryset = queryset.filter(start_date__gte=from_date)
+        elif to_date:
+            queryset = queryset.filter(start_date__lte=to_date)
+
+        # --- Other Filters ---
         status_param = self.request.query_params.get('status')
         if status_param:
             queryset = queryset.filter(status=status_param)

@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter, OrderingFilter  
 from rest_framework.decorators import action  
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError
 from django.utils import timezone  
 from django.shortcuts import get_object_or_404
 from .models import Task, DailyTaskUpdate
@@ -29,18 +31,25 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
         queryset = Task.objects.all()
         
         # --- Date Filters (Single Date & Date Range) ---
-        date_param = self.request.query_params.get('date')
-        from_date = self.request.query_params.get('from_date')
-        to_date = self.request.query_params.get('to_date')
+        date_param = self.request.query_params.get('date', '').strip()
+        from_date = self.request.query_params.get('from_date', '').strip()
+        to_date = self.request.query_params.get('to_date', '').strip()
 
-        if date_param:
-            queryset = queryset.filter(start_date=date_param)
-        elif from_date and to_date:
-            queryset = queryset.filter(start_date__range=[from_date, to_date])
-        elif from_date:
-            queryset = queryset.filter(start_date__gte=from_date)
-        elif to_date:
-            queryset = queryset.filter(start_date__lte=to_date)
+        try:
+            if from_date and to_date:
+                # Agar Range select ki hai
+                queryset = queryset.filter(start_date__range=[from_date, to_date])
+            elif from_date:
+                # Agar sirf 1 date (from) select ki hai, toh sirf usi din ka data aayega
+                queryset = queryset.filter(start_date=from_date)
+            elif to_date:
+                # Agar sirf 1 date (to) select ki hai
+                queryset = queryset.filter(start_date=to_date)
+            elif date_param:
+                # Agar normal date param pass hua hai
+                queryset = queryset.filter(start_date=date_param)
+        except (ValidationError, ValueError):
+            raise DRFValidationError({"error": "Invalid date format. Please use YYYY-MM-DD."})
             
         # --- Other Filters ---
         status_param = self.request.query_params.get('status')
@@ -96,6 +105,7 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
             metadata={"title": task_title}
         )
 
+
 class AdminTaskStatusUpdateView(views.APIView):
     """ Moderate task status. """
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -116,6 +126,7 @@ class AdminTaskStatusUpdateView(views.APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
     """ Admin views global daily work updates with Search & Date Filter. """
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -129,18 +140,23 @@ class AdminWorkLogViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = DailyTaskUpdate.objects.all()
         
         # --- Date Filters (Single Date & Date Range) ---
-        date_param = self.request.query_params.get('date')
-        from_date = self.request.query_params.get('from_date')
-        to_date = self.request.query_params.get('to_date')
+        date_param = self.request.query_params.get('date', '').strip()
+        from_date = self.request.query_params.get('from_date', '').strip()
+        to_date = self.request.query_params.get('to_date', '').strip()
 
-        if date_param:
-            queryset = queryset.filter(created_at__date=date_param)
-        elif from_date and to_date:
-            queryset = queryset.filter(created_at__date__range=[from_date, to_date])
-        elif from_date:
-            queryset = queryset.filter(created_at__date__gte=from_date)
-        elif to_date:
-            queryset = queryset.filter(created_at__date__lte=to_date)
+        try:
+            if from_date and to_date:
+                # Jab dono dates select hon (Range)
+                queryset = queryset.filter(created_at__date__range=[from_date, to_date])
+            elif from_date:
+                # Jab sirf ek from_date select ho, toh sirf usi date ka data aayega
+                queryset = queryset.filter(created_at__date=from_date)
+            elif to_date:
+                queryset = queryset.filter(created_at__date=to_date)
+            elif date_param:
+                queryset = queryset.filter(created_at__date=date_param)
+        except (ValidationError, ValueError):
+            raise DRFValidationError({"error": "Invalid date format. Please use YYYY-MM-DD."})
             
         return queryset
 
@@ -160,21 +176,25 @@ class EmployeeTaskViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-deadline']
 
     def get_queryset(self):
+        # Sirf login kiye hue employee ka data
         queryset = Task.objects.filter(assigned_to=self.request.user)
         
         # --- Date Filters (Single Date & Date Range) ---
-        date_param = self.request.query_params.get('date')
-        from_date = self.request.query_params.get('from_date')
-        to_date = self.request.query_params.get('to_date')
+        date_param = self.request.query_params.get('date', '').strip()
+        from_date = self.request.query_params.get('from_date', '').strip()
+        to_date = self.request.query_params.get('to_date', '').strip()
 
-        if date_param:
-            queryset = queryset.filter(start_date=date_param)
-        elif from_date and to_date:
-            queryset = queryset.filter(start_date__range=[from_date, to_date])
-        elif from_date:
-            queryset = queryset.filter(start_date__gte=from_date)
-        elif to_date:
-            queryset = queryset.filter(start_date__lte=to_date)
+        try:
+            if from_date and to_date:
+                queryset = queryset.filter(start_date__range=[from_date, to_date])
+            elif from_date:
+                queryset = queryset.filter(start_date=from_date)
+            elif to_date:
+                queryset = queryset.filter(start_date=to_date)
+            elif date_param:
+                queryset = queryset.filter(start_date=date_param)
+        except (ValidationError, ValueError):
+            raise DRFValidationError({"error": "Invalid date format. Please use YYYY-MM-DD."})
 
         # --- Other Filters ---
         status_param = self.request.query_params.get('status')
@@ -186,6 +206,7 @@ class EmployeeTaskViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(priority=priority_param)
             
         return queryset
+
 
 class EmployeeSubmitUpdateView(views.APIView):
     """ Employee submits progress notes against an assigned task. """
